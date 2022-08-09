@@ -1,0 +1,270 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
+        <link rel="manifest" href="manifest.json">
+        <script src="jquery-3.2.1.min.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js"></script>
+        <script>
+            const uInt8PublicKey = convert("BFkZRugdJg14EDiT_w1T2wbxhi-3Ke4HmEaoL0uC7pCnBt7BhhHz1MH0PRXlOvUa-RHHKtiJLNBq69mOA1D_820");
+            // Private key: PyFlB6a4ywRbRzbvTpOA4pwfoVA-6C10IvLWRCNuTc8
+
+            function convert(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                    .replace(/\-/g, '+')
+                    .replace(/_/g, '/');
+
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            }
+
+            window.onload = function(){
+                // Service worker
+                if (!('serviceWorker' in navigator)){
+                    console.log("Service Worker not supported.");
+                } else {
+                    navigator.serviceWorker.register("service-worker.js")
+                    .then(function(){
+                        console.log("Registered Service Worker.");
+                    })
+                    .catch(function(){
+                        console.log("Failure in Registering Service Worker.");
+                    });
+
+                    // Push notification
+                    navigator.serviceWorker.ready
+                    .then(function(registration){
+                        registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: uInt8PublicKey
+                        })
+                        .then(function(subscription){
+                            console.log(JSON.stringify(subscription));
+                            //send the subscription to server side for storage
+                        })
+                        .catch(function(error){
+                            console.log(error);
+                        });
+                    });
+                    
+                    navigator.serviceWorker.addEventListener("message", function(event){
+                        console.log("[Client] Received From Service Worker: " + event.data);
+                        if (event.data == "notification"){
+                            document.body.innerHTML += "<div>Notification Received.</div>";
+                        }
+                    });
+                }
+
+                var musicData;
+
+                fetch("https://inec.sg/assignment/retrieve_records.php")
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data){
+                    console.log(data);
+                    musicData = data;
+
+                    insertLastUpdateTime(musicData.last_update);
+                    populateSongsListing(musicData.songs);
+                })
+                .catch(function(error) {
+                    console.log(error)
+                });              
+                
+                // Load home page
+                displayPage('page_home');
+
+                // Update song list
+                $(document).on('click', '#refresh_button', function(){
+                    fetch("https://inec.sg/assignment/retrieve_records.php")
+                    .then(function(response) {
+                        return response.json();
+                    })
+                    .then(function(data){
+                        console.log(data);
+                        musicData = data;
+
+                        insertLastUpdateTime(musicData.last_update);
+                        populateSongsListing(musicData.songs);
+                    })
+                    .catch(function(error) {
+                        console.log(error)
+                    });
+
+                    location.reload();
+                });
+
+                // Populate song details
+                $(document).on('click', '.li_product_item', function(){
+                    var currentId = $(this).attr('id');
+                    var song = musicData.songs[currentId]
+                    document.getElementById("span_header_details").innerHTML = '';
+                    document.getElementById("span_header_details").innerHTML += '<img id="btn_product_details_back" src="img/back_white.png">';
+                    document.getElementById("span_header_details").innerHTML += song.name;
+
+                    document.getElementById("div_product_details_img").innerHTML = '<img src="'+song.image+'">';
+                    document.getElementById("div_product_details_data_cell_artist").innerHTML = '<span class="product_details_data_name">Artist</span><br>'+song.artist+'';
+                    document.getElementById("div_product_details_data_cell_genre").innerHTML = '<span class="product_details_data_name">Genre</span><br>'+song.type+'';
+                    document.getElementById("div_product_details_data_cell_release").innerHTML = '<span class="product_details_data_name">Release</span><br>'+song.release+'';
+                    document.getElementById("div_product_details_data_cell_duration").innerHTML = '<span class="product_details_data_name">Duration</span><br>'+song.duration+'';
+
+                    displayPage('page_details');
+
+                    // Map
+                    var latitude, longitude;
+                    var map, coordinatesArray;
+
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        latitude = position.coords.latitude;
+                        longitude = position.coords.longitude;
+                        initMap();
+                    })
+
+                    var map;
+
+                    function initMap() {
+                        var mapElem = document.getElementById("div_product_map");
+                        map = new google.maps.Map(mapElem,
+                            {
+                                center: { lat: latitude, lng: longitude },
+                                zoom: 14
+                            });
+
+                        new google.maps.Marker({
+                            position: { lat: latitude, lng: longitude },
+                            map,
+                            title: "Current location"
+                        });
+
+                        if (localStorage[song.name]) {
+                            coordinatesArray = JSON.parse(localStorage[song.name]);
+
+                            for (i = 0; i < coordinatesArray.length; i++) {
+                                var marker = new google.maps.Marker({
+                                    position: coordinatesArray[i],
+                                    map
+                                });
+
+                                marker.addListener("click", function (event) {
+                                    alert(this.position);
+                                });
+                            }
+                        } else {
+                            coordinatesArray = [];
+                        }
+
+                        map.addListener("click", function (event) {
+                            console.log(event.latLng);
+                            var marker = new google.maps.Marker({
+                                position: event.latLng,
+                                map
+                            })
+
+                            coordinatesArray.push(event.latLng);
+                            localStorage[song.name] = JSON.stringify(coordinatesArray);
+
+                            marker.addListener("click", function (event) {
+                                    alert(this.position);
+                            });
+                        })                        
+                    }
+                });
+
+                // Back to song list
+                $(document).on('click', '#span_header_details', function(){
+                    displayPage('page_home');
+                });
+
+                // Go to map
+                $(document).on('click', '#div_product_details_footer', function(){
+                    displayPage('page_map');
+                });
+
+                // Back to song details
+                $(document).on('click', '#btn_product_map_back', function(){
+                    displayPage('page_details');
+                });                
+            };            
+
+            function insertLastUpdateTime(lastUpdateTime){
+                document.getElementById("span_header_date").innerHTML = '';
+                console.log(lastUpdateTime);
+                document.getElementById("span_header_date").innerHTML = String(lastUpdateTime);
+            };
+
+            function populateSongsListing(songsArray){
+                var songsListElem = $("#ul_products_list");
+                songsListElem.innerHTML = "";
+
+                songsArray.forEach(function(song, i){
+                    var li = document.createElement('li');         
+                    li.setAttribute("id", i);   
+                    li.setAttribute("class", "li_product_item");               
+                    li.innerHTML = '<div class="li_product_image"><img src="'+String(song.image)+'"></div><div class="li_product_name">'+song.name+', '+song.artist+'<br><span class="li_product_duration">'+song.duration+' minutes</span></div>';
+
+                    songsListElem.prepend(li);                    
+			    });
+            }
+            
+            function displayPage(divID){
+            var pages = document.getElementsByClassName("page");
+
+            for(var i=0; i<pages.length; i++){
+                if (pages[i].id == divID){
+                    pages[i].style = "display:block;";
+                } else {
+                    pages[i].style = "display:none;";
+                }
+            };
+            }     
+        </script>
+        <link href="index.css" rel="stylesheet" type="text/css">
+    </head>
+    
+    <body>
+
+    <div id="page_home" class="page">
+        <div class="div_header">
+            <span id="span_header">Listing <img id="refresh_button" src="img/refresh.png"></span>
+            
+            <span id="span_header_date"></span>
+        </div>
+        <div id="div_products_list">
+            <ul id="ul_products_list"></ul>
+        </div>
+    </div>
+
+    <div id="page_details" class="page">
+        <div class="div_header">
+            <span id="span_header_details"><img id="btn_product_details_back" src="img/back_white.png"></span>
+        </div>
+
+        <div id="div_product_details">
+            <div id="div_product_details_img"></div>
+            <div id="div_product_details_data">
+                <div class="div_product_details_data_cell" id="div_product_details_data_cell_artist"></div>
+                <div class="div_product_details_data_cell" id="div_product_details_data_cell_genre"></div>
+                <div class="div_product_details_data_cell" id="div_product_details_data_cell_release"></div>
+                <div class="div_product_details_data_cell" id="div_product_details_data_cell_duration"></div>
+            </div>
+            <div id="div_product_details_footer">
+                WHERE TO FIND >
+            </div>
+        </div>
+    </div>
+    
+    <div id="page_map" class="page">
+        <div id="div_header_product_map" class="div_header">
+            <span id="span_header"><img id="btn_product_map_back" src="img/back_white.png">Where</span>
+        </div>
+        <div id="div_product_map"></div>
+    </div>
+    
+    </body>
+</html>
