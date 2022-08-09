@@ -5,8 +5,8 @@
   "background_color": "#e1ad01",
   "display": "standalone",
   "orientation": "any",
-  "scope": "/",
-  "start_url": "/",
+  "scope": "/MusicMaps/",
+  "start_url": "/MusicMaps/",
   "icons": [
     {
       "src": "images/icons/icon-72x72.png",

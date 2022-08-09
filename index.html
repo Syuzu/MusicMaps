@@ -2,11 +2,11 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
         <link rel="manifest" href="manifest.json">
+
         <script src="jquery-3.2.1.min.js"></script>
         <script src="https://maps.googleapis.com/maps/api/js"></script>
         <script>
             const uInt8PublicKey = convert("BFkZRugdJg14EDiT_w1T2wbxhi-3Ke4HmEaoL0uC7pCnBt7BhhHz1MH0PRXlOvUa-RHHKtiJLNBq69mOA1D_820");
-            // Private key: PyFlB6a4ywRbRzbvTpOA4pwfoVA-6C10IvLWRCNuTc8
 
             function convert(base64String) {
                 const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -45,7 +45,6 @@
                         })
                         .then(function(subscription){
                             console.log(JSON.stringify(subscription));
-                            //send the subscription to server side for storage
                         })
                         .catch(function(error){
                             console.log(error);
@@ -60,6 +59,7 @@
                     });
                 }
 
+                // AJAX fetch json data
                 var musicData;
 
                 fetch("https://inec.sg/assignment/retrieve_records.php")
@@ -105,7 +105,7 @@
                     var currentId = $(this).attr('id');
                     var song = musicData.songs[currentId]
                     document.getElementById("span_header_details").innerHTML = '';
-                    document.getElementById("span_header_details").innerHTML += '<img id="btn_product_details_back" src="img/back_white.png">';
+                    document.getElementById("span_header_details").innerHTML += '<img id="btn_product_details_back" src="images/back_white.png">';
                     document.getElementById("span_header_details").innerHTML += song.name;
 
                     document.getElementById("div_product_details_img").innerHTML = '<img src="'+song.image+'">';
@@ -231,8 +231,7 @@
 
     <div id="page_home" class="page">
         <div class="div_header">
-            <span id="span_header">Listing <img id="refresh_button" src="img/refresh.png"></span>
-            
+            <span id="span_header">Listing <img id="refresh_button" src="images/refresh.png"></span>            
             <span id="span_header_date"></span>
         </div>
         <div id="div_products_list">
@@ -242,7 +241,7 @@
 
     <div id="page_details" class="page">
         <div class="div_header">
-            <span id="span_header_details"><img id="btn_product_details_back" src="img/back_white.png"></span>
+            <span id="span_header_details"><img id="btn_product_details_back" src="images/back_white.png"></span>
         </div>
 
         <div id="div_product_details">
@@ -261,7 +260,7 @@
     
     <div id="page_map" class="page">
         <div id="div_header_product_map" class="div_header">
-            <span id="span_header"><img id="btn_product_map_back" src="img/back_white.png">Where</span>
+            <span id="span_header"><img id="btn_product_map_back" src="images/back_white.png">Where</span>
         </div>
         <div id="div_product_map"></div>
     </div>

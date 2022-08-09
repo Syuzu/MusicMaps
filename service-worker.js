@@ -86,6 +86,6 @@ self.addEventListener('notificationclick', function (event) { //What happens whe
     event.notification.close();
 
     event.waitUntil(
-        clients.openWindow("http://127.0.0.1:5501")
+        clients.openWindow("https://syuzu.github.io/MusicMaps/")
     );
 });
